@@ -1,0 +1,49 @@
+{
+  "success": true,
+  "data": {
+    "id": 996935273,
+    "name": "IRENE FERREIRA DA SILVA TAVARES",
+    "preferred_name": "",
+    "cpf": "07833369268",
+    "phone_number": "99303-1318",
+    "phone_number_2": null,
+    "email": "TAVARESTABATINGA@HOTMAIL.COM",
+    "birth_date": "1947-10-21T03:00:00.000Z",
+    "parent_name": "MARIA PEREIRA RUBEM",
+    "parent_cpf": "",
+    "parent_phone_number": null,
+    "parent_email": "",
+    "active": true,
+    "address": "RUA SEMPRE VIVA",
+    "is_axpre": false,
+    "axpre_hash": "----",
+    "axpre_person_hash": "----",
+    "allergies": "",
+    "institution_id": 5159,
+    "change_log": null,
+    "kinship": "",
+    "creator_id": 0,
+    "gender_id": 2,
+    "marital_status_id": null,
+    "ethnic_group_id": null,
+    "created_at": "2025-09-17T09:33:00.000Z",
+    "updated_at": "2025-09-17T12:15:47.000Z",
+    "job_title": null,
+    "pdf": [
+      {
+        "id": 7134521,
+        "procedure_id": 8395087,
+        "name": "27f36e0e787cc38b9f4b999c1b8a5d25",
+        "created_at": "2025-09-17T12:10:30.000Z",
+        "type": "PRE"
+      },
+      {
+        "id": 7134616,
+        "procedure_id": 8395087,
+        "name": "efb5d85c1a39596c1ec39f02e369ffca",
+        "created_at": "2025-09-17T12:16:41.000Z",
+        "type": "TRANS"
+      }
+    ]
+  }
+}
