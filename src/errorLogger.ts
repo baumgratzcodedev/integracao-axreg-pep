@@ -3,26 +3,24 @@ import path from "path";
 import { DateTime } from "luxon";
 
 /**
- * Diretório de destino (ordem de prioridade):
+ * Diretório de destino:
  * 1) AXREG_ERRORS_DIR (se definido)
- * 2) Windows: UNC padrão \\172.17.0.97\zarquivos\Errors-AXREG
- * 3) Linux/mac: ponto de montagem local /mnt/axreg/Errors-AXREG
+ * 2) UNC padrão \\172.17.0.97\zarquivos\Errors-AXREG
+ * 3) fallback local ./logs/errors (se der erro ao gravar no UNC)
  */
-const UNC_DEFAULT = "\\\\172.17.0.97\\zarquivos\\Errors-AXREG"; // Windows
-const LINUX_DEFAULT = "/mnt/axreg/Errors-AXREG"; // Linux/mac (share montado)
+const UNC_DEFAULT = "\\\\172.17.0.97\\zarquivos\\Errors-AXREG";
 const FALLBACK_LOCAL = path.resolve("./logs/errors");
 
-// Define o alvo de escrita conforme SO / env
-const TARGET_DIR_RAW =
-  process.env.AXREG_ERRORS_DIR ||
-  (process.platform === "win32" ? UNC_DEFAULT : LINUX_DEFAULT);
+// Se vier via env, respeita; senão usa o UNC padrão
+const TARGET_DIR_RAW = process.env.AXREG_ERRORS_DIR || UNC_DEFAULT;
 
-let announcedTarget = false;
-
+// Em Windows, o UNC funciona nativamente. Em Linux, precisa montar SMB
+// Em ambos os casos, vamos tentar gravar no TARGET_DIR_RAW e, se falhar,
+// gravamos no fallback local.
 function getDailyFilenames(baseDir: string) {
   const day = DateTime.now().toFormat("yyyyLLdd");
   const jsonl = path.join(baseDir, `axreg_errors_${day}.jsonl`);
-  const csv = path.join(baseDir, `axreg_errors_${day}.csv`);
+  const csv   = path.join(baseDir, `axreg_errors_${day}.csv`);
   return { jsonl, csv };
 }
 
@@ -38,42 +36,32 @@ function ensureCsvHeader(csvPath: string) {
 }
 
 function appendBothFormats(baseDir: string, payload: any) {
-  if (!announcedTarget) {
-    console.log(`[AXREG][errors] destino: ${baseDir}`);
-    announcedTarget = true;
-  }
-
   const { jsonl, csv } = getDailyFilenames(baseDir);
 
   // Garante cabeçalho do CSV
   ensureCsvHeader(csv);
 
   // NDJSON
-  fs.appendFileSync(jsonl, JSON.stringify(payload) + "\n", {
-    encoding: "utf8",
-  });
+  fs.appendFileSync(jsonl, JSON.stringify(payload) + "\n", { encoding: "utf8" });
 
   // CSV (escapa aspas)
   const q = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-  const csvLine =
-    [
-      payload.when,
-      payload.reason,
-      payload.patientId,
-      payload.patientName,
-      payload.cpf,
-      payload.pdfId,
-      payload.procedureId,
-      payload.details,
-    ]
-      .map(q)
-      .join(",") + "\n";
+  const csvLine = [
+    payload.when,
+    payload.reason,
+    payload.patientId,
+    payload.patientName,
+    payload.cpf,
+    payload.pdfId,
+    payload.procedureId,
+    payload.details,
+  ].map(q).join(",") + "\n";
   fs.appendFileSync(csv, csvLine, { encoding: "utf8" });
 }
 
 /**
  * Registra erro de processamento (append-only).
- * Se falhar gravar no destino escolhido, grava no fallback local.
+ * Se falhar gravar no UNC, grava no fallback local e imprime aviso.
  */
 export function logProcessingError(entry: {
   reason: string;
@@ -100,21 +88,17 @@ export function logProcessingError(entry: {
     fs.mkdirSync(TARGET_DIR_RAW, { recursive: true });
     appendBothFormats(TARGET_DIR_RAW, safe);
   } catch (e) {
-    // Falhou (ex.: share não montado/permissão). Vai para fallback local.
+    // Falhou gravar no UNC (permissão/rota/SMB). Vai para fallback local.
     try {
       fs.mkdirSync(FALLBACK_LOCAL, { recursive: true });
       appendBothFormats(FALLBACK_LOCAL, safe);
+      // Loga um alerta único por processo
       if (!(global as any).__AXREG_LOGGER_WARNED__) {
-        console.warn(
-          `[AXREG][WARN] Não foi possível gravar em "${TARGET_DIR_RAW}". Usando fallback local: ${FALLBACK_LOCAL}`
-        );
+        console.warn(`[AXREG][WARN] Não foi possível gravar em "${TARGET_DIR_RAW}". Usando fallback local: ${FALLBACK_LOCAL}`);
         (global as any).__AXREG_LOGGER_WARNED__ = true;
       }
     } catch (e2) {
-      console.error(
-        "[AXREG][ERROR] Falha ao gravar logs de erro no fallback local:",
-        e2
-      );
+      console.error("[AXREG][ERROR] Falha ao gravar logs de erro no fallback local:", e2);
     }
   }
 }
