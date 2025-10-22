@@ -538,6 +538,17 @@ async function main() {
   console.log(`   🧾 Inseridos na ZMDIDAXREG: ${totalInseridosZMD}`);
   console.log(`   📎 Inseridos na SZARQUIVO: ${totalInseridosSZ}`);
   console.log(`   ⚠️ Pulados (duplicados ZMD): ${totalPulados}`);
+  try {
+    await pool.close();
+    console.log("🔌 Pool SQL fechado com sucesso!");
+  } catch (e) {
+    console.warn("⚠️ Falha ao fechar pool SQL:", e);
+  }
 }
 
-main().catch(console.error);
+main()
+  .catch(console.error)
+  .finally(() => {
+    console.log("Encerrando processo.");
+    process.exit(0);
+  });

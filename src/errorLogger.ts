@@ -3,20 +3,22 @@ import path from "path";
 import { DateTime } from "luxon";
 
 /**
- * Diretório de destino:
+ * Diretório de destino (ordem de prioridade):
  * 1) AXREG_ERRORS_DIR (se definido)
- * 2) UNC padrão \\172.17.0.97\zarquivos\Errors-AXREG
- * 3) fallback local ./logs/errors (se der erro ao gravar no UNC)
+ * 2) Windows: UNC padrão \\172.17.0.97\zarquivos\Errors-AXREG
+ * 3) Linux/mac: ponto de montagem local /mnt/axreg/Errors-AXREG
  */
-const UNC_DEFAULT = "\\\\172.17.0.97\\zarquivos\\Errors-AXREG";
+const UNC_DEFAULT = "\\\\172.17.0.97\\zarquivos\\Errors-AXREG"; // Windows
+const LINUX_DEFAULT = "/mnt/axreg/Errors-AXREG"; // Linux/mac (share montado)
 const FALLBACK_LOCAL = path.resolve("./logs/errors");
 
-// Se vier via env, respeita; senão usa o UNC padrão
-const TARGET_DIR_RAW = process.env.AXREG_ERRORS_DIR || UNC_DEFAULT;
+// Define o alvo de escrita conforme SO / env
+const TARGET_DIR_RAW =
+  process.env.AXREG_ERRORS_DIR ||
+  (process.platform === "win32" ? UNC_DEFAULT : LINUX_DEFAULT);
 
-// Em Windows, o UNC funciona nativamente. Em Linux, precisa montar SMB
-// Em ambos os casos, vamos tentar gravar no TARGET_DIR_RAW e, se falhar,
-// gravamos no fallback local.
+let announcedTarget = false;
+
 function getDailyFilenames(baseDir: string) {
   const day = DateTime.now().toFormat("yyyyLLdd");
   const jsonl = path.join(baseDir, `axreg_errors_${day}.jsonl`);
@@ -36,6 +38,11 @@ function ensureCsvHeader(csvPath: string) {
 }
 
 function appendBothFormats(baseDir: string, payload: any) {
+  if (!announcedTarget) {
+    console.log(`[AXREG][errors] destino: ${baseDir}`);
+    announcedTarget = true;
+  }
+
   const { jsonl, csv } = getDailyFilenames(baseDir);
 
   // Garante cabeçalho do CSV
@@ -66,7 +73,7 @@ function appendBothFormats(baseDir: string, payload: any) {
 
 /**
  * Registra erro de processamento (append-only).
- * Se falhar gravar no UNC, grava no fallback local e imprime aviso.
+ * Se falhar gravar no destino escolhido, grava no fallback local.
  */
 export function logProcessingError(entry: {
   reason: string;
@@ -93,11 +100,10 @@ export function logProcessingError(entry: {
     fs.mkdirSync(TARGET_DIR_RAW, { recursive: true });
     appendBothFormats(TARGET_DIR_RAW, safe);
   } catch (e) {
-    // Falhou gravar no UNC (permissão/rota/SMB). Vai para fallback local.
+    // Falhou (ex.: share não montado/permissão). Vai para fallback local.
     try {
       fs.mkdirSync(FALLBACK_LOCAL, { recursive: true });
       appendBothFormats(FALLBACK_LOCAL, safe);
-      // Loga um alerta único por processo
       if (!(global as any).__AXREG_LOGGER_WARNED__) {
         console.warn(
           `[AXREG][WARN] Não foi possível gravar em "${TARGET_DIR_RAW}". Usando fallback local: ${FALLBACK_LOCAL}`

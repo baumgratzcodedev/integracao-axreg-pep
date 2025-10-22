@@ -15,7 +15,8 @@
     "dotenv": "^17.2.1",
     "luxon": "^3.7.1",
     "mssql": "^11.0.1",
-    "pdfkit": "^0.17.2"
+    "pdfkit": "^0.17.2",
+    "smb2": "^0.2.11"
   },
   "devDependencies": {
     "@types/luxon": "^3.7.1",
