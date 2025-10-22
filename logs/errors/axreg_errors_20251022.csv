@@ -1,0 +1,5 @@
+when,reason,patientId,patientName,cpf,pdfId,procedureId,details
+"2025-10-22T10:45:41.384-03:00","NO_CPF","997269165","Sueli Xavier Dos Santos Lourenço ","","7374832","8635593","Paciente sem CPF cadastrado; não é possível localizar atendimento no RM."
+"2025-10-22T10:46:06.595-03:00","NO_CPF","997269165","Sueli Xavier Dos Santos Lourenço ","","7374832","8635593","Paciente sem CPF cadastrado; não é possível localizar atendimento no RM."
+"2025-10-22T11:05:13.377-03:00","NO_CPF","997269165","Sueli Xavier Dos Santos Lourenço ","","7374832","8635593","Paciente sem CPF cadastrado; não é possível localizar atendimento no RM."
+"2025-10-22T11:05:45.432-03:00","NO_CPF","997269165","Sueli Xavier Dos Santos Lourenço ","","7374832","8635593","Paciente sem CPF cadastrado; não é possível localizar atendimento no RM."
